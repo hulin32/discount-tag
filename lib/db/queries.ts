@@ -1,6 +1,6 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { desc, and, eq, isNull, inArray } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, monitorLinks, monitorLinkHistories } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -97,6 +97,30 @@ export async function getActivityLogs() {
     .where(eq(activityLogs.userId, user.id))
     .orderBy(desc(activityLogs.timestamp))
     .limit(10);
+}
+
+export async function getMonitorLinksAndHistories() {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+ 
+  const monitorData = await db
+    .select()
+    .from(monitorLinks)
+    .where(eq(monitorLinks.userId, user.id))
+    .orderBy(desc(monitorLinks.createdAt));
+
+  // get monitor histories for each monitor link and attach as an array to the monitor link
+  const monitorHistories = await db
+    .select()
+    .from(monitorLinkHistories)
+    .where(inArray(monitorLinkHistories.monitorLinkId, monitorData.map((monitor) => monitor.id)));
+
+  return monitorData.map((monitor) => ({
+    ...monitor,
+    histories: monitorHistories.filter((history) => history.monitorLinkId === monitor.id),
+  }));
 }
 
 export async function getTeamForUser(userId: number) {

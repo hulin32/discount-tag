@@ -68,6 +68,26 @@ export const invitations = pgTable('invitations', {
   status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
+export const monitorLinks = pgTable('monitor_links', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id),
+  link: text('link').notNull(),
+  monitorArea: text('monitor_area').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+});
+
+export const monitorLinkHistories = pgTable('monitor_link_histories', {
+  id: serial('id').primaryKey(),
+  monitorLinkId: integer('monitor_link_id').references(() => monitorLinks.id),
+  status: text('status').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+});
+
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
@@ -127,6 +147,10 @@ export type TeamDataWithMembers = Team & {
     user: Pick<User, 'id' | 'name' | 'email'>;
   })[];
 };
+export type MonitorLink = typeof monitorLinks.$inferSelect;
+export type NewMonitorLink = typeof monitorLinks.$inferInsert;
+export type MonitorLinkHistory = typeof monitorLinkHistories.$inferSelect;
+export type NewMonitorLinkHistory = typeof monitorLinkHistories.$inferInsert;
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',
