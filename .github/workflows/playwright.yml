@@ -8,6 +8,7 @@ on:
 # Permissions for deployment
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   test:
@@ -33,10 +34,32 @@ jobs:
     
     # Deploy to GitHub Pages
     - name: Deploy to GitHub Pages
-      if: always() && github.ref == 'refs/heads/master'
+      if: always()
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./playwright-report
-        destination_dir: run-${{ github.run_number }}
+        destination_dir: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_number) }}
         keep_files: true
+    
+    # Display report link
+    - name: Display report link
+      if: always()
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "📊 Test Report URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/" | tee -a $GITHUB_STEP_SUMMARY
+          echo "::notice title=Playwright Report::View test results at https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/"
+        else
+          echo "📊 Test Report URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/run-${{ github.run_number }}/" | tee -a $GITHUB_STEP_SUMMARY
+          echo "::notice title=Playwright Report::View test results at https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/run-${{ github.run_number }}/"
+        fi
+    
+    # Post PR comment with test report link
+    - name: Comment PR
+      if: always() && github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body "## 🎭 [Playwright Test Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/)"
+
+        
