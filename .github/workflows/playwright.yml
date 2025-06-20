@@ -25,3 +25,25 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+    
+    # Deploy to GitHub Pages
+    - name: Setup Pages
+      if: always()
+      uses: actions/configure-pages@v4
+    
+    - name: Upload Pages artifact
+      if: always()
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: playwright-report/
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      if: always()
+      uses: actions/deploy-pages@v4
+
+# Add permissions for GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
